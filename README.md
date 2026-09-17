@@ -76,17 +76,21 @@ While a single Decision Tree scored a slightly higher raw F1 (0.813 vs 0.801), i
 **Extra Trees** was selected as the final production model because:
 1. It delivered the highest ranking discrimination: **0.891 ROC-AUC** and **0.916 PR-AUC**.
 2. It outputs smooth, calibrated probabilities needed for operational risk tiering.
-3. Test set confusion matrix breakdown (36,104 samples):
-   - **True Negatives:** 13,872
-   - **False Positives:** 2,436
-   - **False Negatives:** 4,935
-   - **True Positives:** 14,861
+
+![Model Comparison](images/Model_Comparison.png)
 
 ---
 
-## 📈 Operational Risk Tiers
+## 📈 Model Evaluation & Operational Risk Tiers
 
-In `notebooks/06_model_evaluation.ipynb`, continuous model probabilities were converted into practical dispatch tiers:
+Test set performance metrics, confusion matrix, and ROC curve generated directly from our test holdout:
+
+![Metric Scores](images/Metric_Scores.png)
+![Confusion Matrix](images/Confusion_Matrix.png)
+![ROC Curve](images/ROC_Curve.png)
+
+### Operational Risk Triage Strategy
+Continuous model probabilities on the 36,104 test samples were bucketed into operational dispatch tiers:
 
 | Risk Tier | Probability Range | Test Orders (n) | Actual Late Rate | Recommended Operational Action |
 | :--- | :---: | :---: | :---: | :--- |
@@ -116,7 +120,10 @@ Breaking down model performance across shipping modes on the test set revealed a
 ## 🔍 Feature Importance & SHAP Insights
 
 Feature attribution from Gini importance and Tree SHAP in `notebooks/08_explainability.ipynb`:
-- **Top 3 Predictive Features:** `Shipping Mode (Standard Class)`, `Urgent_Shipment` (scheduled transit <= 2 days), and `Days for shipment (scheduled)`.
+
+![Feature Importance](images/Feature_Importance.png)
+
+- **Top 3 Predictive Features:** `num__Urgent_Shipment` (scheduled transit <= 2 days), `num__Days for shipment (scheduled)`, and `num__Order_Hour`.
 - **Directional Impact:** Standard Class consistently pushes late delivery probability upward, whereas longer scheduled transit windows provide buffer time that lowers risk.
 - **Order Financials:** Higher sales value and discount percentage have secondary influence, reflecting batch complexity during high-volume promotions.
 
@@ -143,6 +150,12 @@ streamlit run app/app.py
 ├── data/
 │   ├── raw/                       # Raw DataCo dataset (see data/README.md)
 │   └── processed/                 # Cleaned splits & benchmark CSVs
+├── images/                        # Generated plots from actual test evaluation
+│   ├── Model_Comparison.png
+│   ├── Metric_Scores.png
+│   ├── Confusion_Matrix.png
+│   ├── ROC_Curve.png
+│   └── Feature_Importance.png
 ├── models/
 │   └── best_model.pkl             # Trained Extra Trees production pipeline
 ├── notebooks/                     # 10 sequential analysis notebooks (01 to 10)
