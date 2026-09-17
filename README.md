@@ -1,47 +1,63 @@
-# Supply Chain Risk Intelligence
+# 🚚 Supply Chain Risk Intelligence System
 
-Predicting late delivery risk at the exact moment an order is placed, giving logistics teams lead time to intervene before shipments leave the warehouse.
+Predict shipment delivery risk at order checkout using Machine Learning to help logistics and operations teams identify high-risk shipments before dispatch.
 
 ---
 
-## Why I Built This
-In e-commerce and delivery operations, learning that a shipment was delayed after the delivery window has passed is too late to fix. Once a package is on a truck, you cannot easily reroute or prioritize it.
+## 📌 Overview
 
-The goal of this project was to build an operational risk scoring pipeline that flags high-risk orders at checkout (`Late_delivery_risk` = 1) using only data known at order placement. Rather than outputting just a binary flag, the model generates calibrated risk probabilities so warehouse teams can triage limited intervention capacity (like priority picking or carrier upgrades) toward the orders that actually need it.
+This project develops an end-to-end Machine Learning and analytics pipeline to predict **Late Delivery Risk** (`Late_delivery_risk` = 1) using the **DataCo Smart Supply Chain Dataset (180,519 records)**. 
 
-## The Dataset & The Data Leakage Problem
-I worked with the [DataCo Smart Supply Chain Dataset](https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis) (180,519 records from 2015 to 2018).
-- **Target Distribution:** 98,977 delayed orders (54.8%) vs. 81,542 on-time orders (45.2%).
-- **Cleaning & PII:** Dropped customer PII (names, emails, passwords, street addresses) and redundant IDs. Removed `Product Description` (100% null) and `Order Zipcode` (86.2% null).
+Finding out an order is delayed after the promised window has passed is too late for logistics intervention. This system scores calibrated delay probabilities at **order placement**, allowing warehouse dispatchers to triage limited expediting capacity (priority packaging, carrier reassignment) before packages leave the facility.
 
-### Catching Data Leakage
-The biggest pitfall in this dataset is post-event target leakage. Features like `Days for shipping (real)` and `Delivery Status` are recorded after delivery. Leaving them in produces a fake 99% accuracy model. I wrote a dedicated cleaning step in `src/preprocessing.py` to strip them before any modeling:
+---
 
-```python
-leakage_cols = [
-    "Days for shipping (real)",    # Actual transit time (only known after delivery)
-    "Delivery Status",             # Delivery outcome (target in disguise)
-    "shipping date (DateOrders)"   # Actual ship date (recorded post-dispatch)
-]
-df = df.drop(columns=leakage_cols)
+## 🚀 Key Highlights & Capabilities
+
+- 🧹 **Strict Leakage-Free Preprocessing:** Purged post-event columns (`Days for shipping (real)`, `Delivery Status`, and ship dates) to prevent artificial 99% accuracy.
+- ⚙️ **Production Feature Engineering:** Engineered shipment urgency flags, financial margin ratios, order timing, and leak-free out-of-fold training aggregations.
+- 📊 **Statistical Testing & SQL Suite:** Validated delay drivers with Chi-Square tests (Chi-Square = 37,716.04, p < 0.001) and 24 analytical SQL queries across routing lanes and customer cohorts.
+- 🤖 **6 ML Models Benchmarked:** Compared Dummy baseline, Logistic Regression, Decision Tree, Random Forest, Extra Trees, and HistGradientBoosting on identical test splits.
+- 🌲 **Calibrated Risk Scoring:** Extra Trees selected for best-in-class probability ranking (**0.891 ROC-AUC**, **0.916 PR-AUC**) and segmented into actionable Low, Medium, and High risk tiers.
+- 🔍 **Explainability & SHAP:** Global feature importances and Tree SHAP values isolate exact directional delay drivers.
+- 🎯 **Deep Error Analysis:** Uncovered why Standard Class shipping accounts for >95% of false negatives due to 4–6 day scheduled window variance.
+- 📈 **Forecasting & A/B Simulation:** 7-day seasonal Holt-Winters order volume forecasting and counterfactual A/B intervention testing.
+- 🖥️ **Interactive Streamlit App:** Live checkout risk predictor with instant probability scoring and operational recommendations.
+
+---
+
+## 📂 Project Workflow
+
+```
+DataCo Raw Dataset (180,519 orders)
+               │
+               ▼
+Data Cleaning & Leakage Elimination (drop post-event columns & PII)
+               │
+               ▼
+Stratified 80/20 Train/Test Split (144,415 train / 36,104 test)
+               │
+               ▼
+Feature Engineering & Aggregations (urgency flags, margins, temporal signals)
+               │
+               ▼
+Statistical Hypothesis Testing (Chi-Square & T-Test) + 24 SQL Queries
+               │
+               ▼
+Model Training & Benchmarking (Baseline, Logistic, Trees, Ensembles, Boosting)
+               │
+               ▼
+Operational Evaluation (Calibrated Risk Tiers, Threshold Tuning, Error Breakdown)
+               │
+               ▼
+Explainability (SHAP & Feature Importance) + Forecasting + Streamlit Dashboard
 ```
 
-To avoid 5,000+ sparse one-hot columns from raw cities and states, I dropped high-cardinality location fields and kept broader regional signals (`Market`, `Order Region`, `Order Country`).
+---
 
-## Feature Engineering & Pipeline Design
-I split the 180,519 rows into an 80% train set (144,415) and 20% test set (36,104) with stratification **before** feature computation to prevent lookahead bias:
-1. **Domain Signals:** In `src/features.py`, I created transit urgency flags (`Urgent_Shipment` for scheduled transit <= 2 days), financial ratios (`Profit_Margin`, `Discount_Percentage`, `Sales_Per_Item`), and checkout timing (`Order_Hour`, `Is_Weekend`).
-2. **Out-of-Fold Aggregates:** Computed category and shipping volume statistics on the training set only and mapped them onto the test set.
-3. **Preprocessing:** Packaged transformations inside a scikit-learn `ColumnTransformer` (median imputation + `StandardScaler` for numbers; frequent imputation + `OneHotEncoder` for categories).
+## 📊 Models Compared & Test Results
 
-## Statistical Hypothesis Testing & SQL
-Before modeling, I validated relationships in `notebooks/04_statistical_analysis.ipynb`:
-- **Chi-Square Test:** Evaluated `Shipping Mode` vs `Late_delivery_risk`. The result was Chi-Square = 37,716.04 (p < 0.001, df = 3), statistically confirming that shipping mode is strongly tied to delay risk.
-- **Two-Sample T-Test:** Confirmed scheduled transit days between delayed and on-time shipments differ significantly (p < 0.001).
-- **SQL Analysis:** Wrote 24 queries across `sql/business_analysis.sql`, `sql/delivery_analysis.sql`, and `sql/risk_analysis.sql` using CTEs, window functions (`RANK()`, `LAG()`), and cohort aggregations to isolate high-risk lanes and customer lifetime revenue.
-
-## Model Benchmarking
-I trained 5 algorithms against a Dummy baseline on the exact same 36,104 test holdout (`data/processed/model_comparison.csv`):
+All models were evaluated on the exact same 36,104 test holdout using a standardized `ColumnTransformer`:
 
 | Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC | PR-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -52,78 +68,128 @@ I trained 5 algorithms against a Dummy baseline on the exact same 36,104 test ho
 | **Extra Trees (Selected)** | **0.796** | 0.859 | 0.751 | 0.801 | **0.891** | **0.916** |
 | Hist Gradient Boosting | 0.739 | **0.892** | 0.597 | 0.715 | 0.834 | 0.880 |
 
-### Why Extra Trees Won Over Decision Tree
-While a single Decision Tree scored a slightly higher binary F1 (0.813 vs 0.801), individual tree leaves output uncalibrated probabilities (mostly 0 or 1). In production, logistics teams need to rank orders by risk level rather than treat all flags identically. Extra Trees delivered the highest ranking performance with **0.891 ROC-AUC** and **0.916 PR-AUC**.
+### 🏆 Final Model Selection Rationale
+While a single Decision Tree scored a slightly higher raw F1 (0.813 vs. 0.801), individual tree leaves output polarized 0/1 probabilities. For operational triage, **Extra Trees** was selected because it achieved the highest ranking discrimination (**0.891 ROC-AUC**, **0.916 PR-AUC**) and well-calibrated probabilities.
 
-Test set confusion matrix on the 36,104 holdout:
-- **True Negatives:** 13,872 | **False Positives:** 2,436
-- **False Negatives:** 4,935 | **True Positives:** 14,861
+![Model Comparison](images/Model_Comparison.png)
 
-### Operational Risk Tiers
-In `notebooks/06_model_evaluation.ipynb`, I converted the continuous probabilities into practical dispatch tiers:
+---
 
-| Risk Tier | Probability Range | Orders (n) | Actual Late Rate | Actionable Dispatch Strategy |
+## 📈 Model Evaluation & Risk Tiers
+
+Test set performance metrics and operational confusion matrix:
+
+![Metric_Scores](images/Metric_Scores.png)
+![Confusion_Matrix](images/Confusion_Matrix.png)
+![ROC_Curve](images/ROC_Curve.png)
+
+### Operational Risk Triage Strategy
+Continuous probabilities from the test set (36,104 orders) were bucketed into operational dispatch tiers:
+
+| Risk Tier | Probability Range | Orders (n) | Actual Late Rate | Recommended Action |
 | :--- | :---: | :---: | :---: | :--- |
 | **Low Risk** | p < 0.30 | 11,520 (31.9%) | **5.7%** | Standard automated processing |
-| **Medium Risk** | 0.30 <= p < 0.60 | 10,063 (27.9%) | **57.8%** | Watchlist; flag if batch volume spikes |
-| **High Risk** | p >= 0.60 | 14,521 (40.2%) | **91.8%** | Priority fulfillment & carrier reassignment |
+| **Medium Risk** | 0.30 <= p < 0.60 | 10,063 (27.9%) | **57.8%** | Watchlist; prioritize if warehouse load spikes |
+| **High Risk** | p >= 0.60 | 14,521 (40.2%) | **91.8%** | Immediate priority picking & carrier reassignment |
 
-Lowering the decision threshold from 0.50 to 0.40 boosts recall to **87.7%** (catching over 2,400 additional delays) with an F1 of 0.816.
+*Tuning the operational decision threshold from 0.50 down to 0.40 lifts recall to **87.7%**, catching over 2,400 additional late deliveries.*
 
-## Feature Importance & SHAP
-Tree SHAP and Gini feature importances confirmed what drives late deliveries:
+---
 
-![Top 20 Features](images/Feature_Importance.png)
+## 🔍 Feature Importance & Explainability
 
-- `Shipping Mode (Standard Class)` and `Urgent_Shipment` are the top two predictors.
-- SHAP values in `notebooks/08_explainability.ipynb` show that Standard Class pushes delay risk up, while longer scheduled buffer days push risk down.
+![Feature_Importance](images/Feature_Importance.png)
 
-## Error Analysis: Why Standard Class Fails
-In `notebooks/07_error_analysis.ipynb`, I broke down test set errors by shipping mode to see where mistakes happened:
+- **Primary Predictive Drivers:** `Shipping Mode (Standard Class)`, `Urgent_Shipment` (scheduled transit <= 2 days), and scheduled transit days dictate model decisions.
+- **SHAP Insights:** Standard Class shipping consistently exerts positive attribution toward delay risk, whereas larger scheduled transit buffers reduce delay probability.
 
-| Shipping Mode | Test Samples (n) | Precision | Recall | F1 Score | Finding |
+---
+
+## 🎯 Error Analysis: Where The Model Struggles
+
+Breaking down model performance across shipping modes on the test set revealed an important operational insight:
+
+| Shipping Mode | Test Samples (n) | Precision | Recall | F1 Score | Operational Insight |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **First Class** | 5,628 | 1.000 | 1.000 | 1.000 | 1-day SLA; almost perfectly deterministic |
-| **Same Day** | 1,975 | 0.983 | 0.983 | 0.983 | Express routing; rarely misses |
-| **Second Class** | 7,005 | 0.834 | 0.991 | 0.905 | High delay rate, but easily identified |
-| **Standard Class** | 21,496 | 0.708 | 0.403 | **0.513** | **Accounts for >95% of all false negatives** |
+| **First Class** | 5,628 | 1.000 | 1.000 | 1.000 | Strict 1-day SLA; virtually deterministic |
+| **Same Day** | 1,975 | 0.983 | 0.983 | 0.983 | Dedicated express routing; rarely misses |
+| **Second Class** | 7,005 | 0.834 | 0.991 | 0.905 | High delay rate, but readily caught |
+| **Standard Class** | 21,496 | 0.708 | 0.403 | **0.513** | **Responsible for >95% of all false negatives** |
 
-Standard Class has a wide 4 to 6 day delivery window. Delays here stem from transit noise (traffic, weather, sorting hub backlogs) that cannot be captured from checkout data alone. Across customer segments (Consumer F1: 0.794, Corporate F1: 0.806, Home Office F1: 0.814), the model showed balanced fairness without demographic bias.
+**Why Standard Class Fails:** Standard Class features a wide 4 to 6 day scheduled window. Delays in this tier depend heavily on in-transit disruptions (hub congestion, courier delays, weather) that are unobservable at order checkout.
 
-## Forecasting & A/B Simulation
-- **Volume Forecasting (`notebooks/09_forecasting.ipynb`):** Aggregated 1,127 daily order counts (averaging ~160 orders/day) and fitted a 7-day seasonal Holt-Winters Exponential Smoothing model to help dispatchers forecast staffing spikes.
-- **A/B Test Simulation (`notebooks/10_ab_test_simulation.ipynb`):** Built a counterfactual simulation modeling a 30% delay-reduction intervention on high-risk orders. A two-sample z-test confirmed statistically significant delay rate reduction (p < 0.001).
+---
 
-## Streamlit Dashboard
-I built an interactive web app in `app/app.py`:
-1. **Overview:** Test set metrics, confusion matrix breakdown, and risk tier distribution cards.
-2. **Operational Insights:** Delay heatmaps across shipping methods and regional destination markets.
-3. **Live Predictor:** An interactive form that lets an operator input order details and returns the calibrated delay probability, a color-coded risk badge (Low/Medium/High), and an explanation of the main risk factors.
+## 🖥️ Streamlit Interactive Dashboard
 
-## Limitations
-- **Observational Data:** Lacks real-time GPS telemetry, carrier transit logs, and live weather.
-- **Standard Class Ceiling:** As error analysis showed, order-time tabular features hit an information limit for standard shipping delays.
-- **Simulated Experimentation:** The A/B test is a counterfactual simulation, not a live production deployment.
+An interactive dashboard is available in `app/app.py`:
+- **Executive Summary:** Real-time test set metric cards, confusion matrix, and risk tier breakdowns.
+- **Delay Heatmaps:** Delay rates across global destination markets and shipping methods.
+- **Live Risk Predictor:** Enter order details to receive an instant calibrated probability, Low/Medium/High risk badge, and natural language risk explanations.
 
-## Tech Stack
-- **Languages & Core:** Python, Pandas, NumPy, SQLite
-- **Machine Learning:** Scikit-learn (Pipelines, ExtraTrees, HistGradientBoosting)
-- **Stats & Forecasting:** SciPy (Chi-Square, T-Test), Statsmodels (Holt-Winters)
-- **Explainability & Viz:** SHAP, Matplotlib, Seaborn
-- **Web App:** Streamlit
-
-## How to Run
 ```bash
-# 1. Clone repo and install requirements
+streamlit run app/app.py
+```
+
+---
+
+## 📁 Repository Structure
+
+```
+├── app/
+│   └── app.py                     # Streamlit interactive dashboard
+├── data/
+│   ├── raw/                       # Raw DataCo dataset
+│   └── processed/                 # Cleaned splits & model comparison benchmarks
+├── images/                        # Plots, metrics, confusion matrices, ROC curves
+├── models/
+│   └── best_model.pkl             # Trained Extra Trees production pipeline
+├── notebooks/                     # 10 sequential analysis notebooks (01 to 10)
+├── sql/                           # 24 analytical SQL queries across 3 domains
+├── src/                           # Modular Python pipeline modules
+├── requirements.txt               # Project dependencies
+└── README.md
+```
+
+---
+
+## 🛠️ Tech Stack
+
+- **Core & Data Manipulation:** Python, Pandas, NumPy, SQLite
+- **Machine Learning:** Scikit-learn (Pipelines, ExtraTrees, HistGradientBoosting)
+- **Model Explainability & Visualization:** SHAP, Matplotlib, Seaborn
+- **Statistical Testing & Time Series:** SciPy (Stats), Statsmodels (Holt-Winters)
+- **Web Dashboard:** Streamlit
+
+---
+
+## ⚙️ How to Run
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/YogeshKhillare04/supply-chain-risk-intelligence.git
 cd supply-chain-risk-intelligence
+
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 2. Add raw dataset to data/raw/DataCoSupplyChainDataset.csv (see data/README.md)
+# 3. Place DataCoSupplyChainDataset.csv inside data/raw/ (see data/README.md)
 
-# 3. Launch Streamlit app
+# 4. Launch the Streamlit web dashboard
 streamlit run app/app.py
 
-# 4. Run notebooks in sequence (01 to 10)
+# 5. Run Jupyter notebooks in order (01 to 10)
 jupyter notebook notebooks/
 ```
+
+---
+
+## ⚠️ Limitations & Future Work
+
+- **Observational Data:** Relies on historical tabular data; does not include live GPS telemetry or dynamic transit weather feeds.
+- **Standard Class Transit Visibility:** Order-time features reach an information ceiling for long-haul standard shipments without in-transit checkpoints.
+- **Simulation vs Production:** The A/B test is a counterfactual statistical simulation rather than an active in-production trial.
+
+---
+
+⭐ If you found this project insightful, consider giving it a star!
