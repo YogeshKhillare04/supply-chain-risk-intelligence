@@ -1,31 +1,30 @@
 # 🚚 Supply Chain Risk Intelligence System
 
-Predict shipment delivery risk at order checkout using Machine Learning to help logistics and operations teams identify high-risk shipments before dispatch.
+A machine learning project that predicts whether an order is likely to be delivered late using historical supply-chain data. The main idea was to identify high-risk shipments before dispatch, so that logistics teams have some time to decide where intervention may be useful.
 
 ---
 
 ## 📌 Overview
 
-Delivery delays damage customer trust and drive up operational support costs. In real-world logistics, finding out an order was delayed after the promised window has passed is too late for intervention. Once a package is on a long-haul truck, dispatchers cannot easily reroute or expedite it.
+Delivery delays affect both customer experience and operational costs. In many cases, knowing that an order was delayed after the promised delivery window has already passed is not very useful. I wanted to see whether the information available around order placement could be used to predict late-delivery risk early enough to support action.
 
-This project builds an end-to-end Machine Learning pipeline to predict **Late Delivery Risk** (`Late_delivery_risk` = 1) using the **DataCo Smart Supply Chain Dataset (180,519 records)**. 
+For this project, I used the DataCo Smart Supply Chain Dataset with 180,519 records and built an end-to-end machine learning workflow around the target variable **Late Delivery Risk** (`Late_delivery_risk` = 1) using the **DataCo Smart Supply Chain Dataset (180,519 records)**. 
 
 The objective is not just binary classification, but reliable, calibrated probability risk scoring at **order placement**. This gives warehouse and dispatch teams the lead time needed to triage limited intervention capacity (priority picking, carrier reassignment) toward orders that need it most.
 
 ---
 
-## 🚀 Key Highlights
+## 🚀 What I worked on
 
-- 🧹 **Zero-Leakage Preprocessing:** Audited and stripped post-event columns (`Days for shipping (real)`, `Delivery Status`, and actual shipping dates) that create fake 99% accuracy models.
-- ⚙️ **Production Feature Engineering:** Engineered delivery urgency flags (scheduled transit <= 2 days), financial margin ratios, order timing, and leak-free out-of-fold training aggregations.
-- 📊 **Statistical Testing & SQL Suite:** Validated delay drivers with Chi-Square tests (Chi-Square = 37,716.04, p < 0.001) and 24 analytical SQL queries across routing lanes and customer cohorts.
-- 🤖 **6 ML Models Benchmarked:** Trained Dummy baseline, Logistic Regression, Decision Tree, Random Forest, Extra Trees, and HistGradientBoosting on identical test splits.
-- 🌲 **Calibrated Risk Tiers:** Extra Trees selected for best-in-class probability ranking (**0.891 ROC-AUC**, **0.916 PR-AUC**) and segmented into actionable Low, Medium, and High risk tiers.
-- 🔍 **SHAP & Feature Explainability:** Isolated exact directional delay drivers—confirming Standard Class pushes risk up, while longer scheduled transit buffers reduce delay probability.
+- 🧹 **Data cleaning and leakage check:** I removed information that would only be known after delivery, such as Days for shipping (real), Delivery Status, and actual shipping dates. This was important because keeping these variables can produce unrealistically high model performance.
+- ⚙️ **Production Feature Engineering:** ECreated features related to delivery urgency, order timing, financial ratios and other leak-free aggregates. One example is an urgency flag for shipments with scheduled transit time of 2 days or less.
+- 📊 **Statistical Testing & SQL :** Used Chi-Square and T-Test analysis to investigate possible delay drivers and wrote 24 SQL queries covering routing lanes, customer cohorts and other operational patterns.
+- 🤖 **6 ML Models Comparision:** Compared six classification approaches — Dummy Classifier, Logistic Regression, Decision Tree, Random Forest, Extra Trees and HistGradientBoosting — using the same train/test setup.
+- 🌲 **Risk scoring:** Extra Trees selected for best-in-class probability ranking (**0.891 ROC-AUC**, **0.916 PR-AUC**) and segmented into actionable Low, Medium, and High risk tiers.
+- 🔍 **SHAP & Feature Explainability:** Used SHAP and feature importance analysis to understand which variables were contributing most to the predictions.
 - 🎯 **Deep Error Analysis:** Uncovered that Standard Class shipping accounts for **>95% of all false negatives** due to unobserved variance in 4–6 day delivery windows.
 - 📈 **Forecasting & A/B Simulation:** 7-day seasonal Holt-Winters order volume forecasting and counterfactual A/B intervention testing.
-- 🖥️ **Streamlit Web Application:** Interactive dashboard for real-time risk scoring, operational heatmaps, and plain-English explanations.
-
+- 🖥️ **Streamlit Web Application:** Streamlit application where an order can be scored and its risk factors can be viewed in a more practical way.
 ---
 
 ## 📂 Project Workflow
@@ -60,15 +59,14 @@ Error Analysis & Explainability (SHAP, slice metrics) + Streamlit Dashboard
 ## 📊 Models Compared & Test Results
 
 All models were evaluated on the exact same 36,104 test holdout using a standardized `ColumnTransformer` (median imputation + `StandardScaler` for numbers; frequent imputation + `OneHotEncoder` for categories):
-
-| Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC | PR-AUC |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| Dummy Baseline | 0.548 | 0.548 | 1.000 | 0.708 | 0.500 | 0.548 |
-| Logistic Regression | 0.725 | 0.881 | 0.577 | 0.698 | 0.776 | 0.842 |
-| Decision Tree | 0.794 | 0.810 | **0.816** | **0.813** | 0.792 | 0.762 |
-| Random Forest | 0.753 | 0.857 | 0.660 | 0.745 | 0.846 | 0.885 |
-| **Extra Trees (Selected)** | **0.796** | 0.859 | 0.751 | 0.801 | **0.891** | **0.916** |
-| Hist Gradient Boosting | 0.739 | **0.892** | 0.597 | 0.715 | 0.834 | 0.880 |
+| Model                  |  Accuracy | Precision |    Recall |        F1 |   ROC-AUC |    PR-AUC |
+| ---------------------- | --------: | --------: | --------: | --------: | --------: | --------: |
+| Dummy Baseline         |     0.548 |     0.548 |     1.000 |     0.708 |     0.500 |     0.548 |
+| Logistic Regression    |     0.725 |     0.881 |     0.577 |     0.698 |     0.776 |     0.842 |
+| Decision Tree          |     0.794 |     0.810 | **0.816** | **0.813** |     0.792 |     0.762 |
+| Random Forest          |     0.753 |     0.857 |     0.660 |     0.745 |     0.846 |     0.885 |
+| **Extra Trees**        | **0.796** |     0.859 |     0.751 |     0.801 | **0.891** | **0.916** |
+| Hist Gradient Boosting |     0.739 | **0.892** |     0.597 |     0.715 |     0.834 |     0.880 |
 
 ### 🏆 Why Extra Trees Was Selected
 While a single Decision Tree scored a slightly higher raw F1 (0.813 vs 0.801), individual tree leaves output polarized 0/1 probabilities. In production, operations teams cannot act on every single order; they need to rank orders from riskiest to safest.
@@ -98,7 +96,9 @@ Continuous model probabilities on the 36,104 test samples were bucketed into ope
 | **Medium Risk** | 0.30 <= p < 0.60 | 10,063 (27.9%) | **57.8%** | Watchlist; prioritize if warehouse load spikes |
 | **High Risk** | p >= 0.60 | 14,521 (40.2%) | **91.8%** | Immediate priority picking & carrier upgrade |
 
-*Threshold Tuning:* Lowering the decision threshold from 0.50 down to 0.40 boosts recall to **87.7%**, capturing over 2,400 additional late deliveries with an F1 of 0.816.
+*Threshold Tuning:* The separation between these groups was useful because the model's probability was much more informative than simply saying an order was "late" or "not late."
+
+I also checked a lower decision threshold. Moving the threshold from 0.50 to 0.40 increased recall to **87.7%**, capturing more late deliveries while giving an F1 score of 0.816
 
 ---
 
@@ -123,7 +123,7 @@ Feature attribution from Gini importance and Tree SHAP in `notebooks/08_explaina
 
 ![Feature Importance](images/Feature_Importance.png)
 
-- **Top 3 Predictive Features:** `num__Urgent_Shipment` (scheduled transit <= 2 days), `num__Days for shipment (scheduled)`, and `num__Order_Hour`.
+- **The three most important predictive features were::** `num__Urgent_Shipment` (scheduled transit <= 2 days), `num__Days for shipment (scheduled)`, and `num__Order_Hour`.
 - **Directional Impact:** Standard Class consistently pushes late delivery probability upward, whereas longer scheduled transit windows provide buffer time that lowers risk.
 - **Order Financials:** Higher sales value and discount percentage have secondary influence, reflecting batch complexity during high-volume promotions.
 
@@ -218,4 +218,3 @@ jupyter notebook notebooks/
 
 ---
 
-⭐ If you found this project insightful, consider giving it a star!
