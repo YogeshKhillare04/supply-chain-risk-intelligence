@@ -8,17 +8,49 @@ __pycache__/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data files (too large for GitHub)
-data/raw/*.csv
-data/processed/*.csv
-data/processed/*.pkl
-*.csv
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
-# Models (large binary files)
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Models (too large for GitHub - ~987MB)
 models/*.pkl
 models/*.joblib
 *.pkl
 *.joblib
+
+# Large data files (too large for GitHub - regeneratable from notebooks)
+data/raw/*.csv
+data/processed/cleaned_data.csv
+data/processed/cleaned_with_dates.csv
+data/processed/X_train.csv
+data/processed/X_test.csv
+
+# Environment
+.env
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+*.log
+.cache/
 
 # Environment
 .env
