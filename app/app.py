@@ -101,7 +101,7 @@ page = st.sidebar.radio(
 st.sidebar.divider()
 st.sidebar.markdown("### About This App")
 st.sidebar.info(
-    "**Author:** Final Year Data Science Project\n\n"
+    "**Author:** Yogesh Khillare\n\n"
     "**Tech:** Python, Scikit-learn, Streamlit\n\n"
     "**Core Metric:** ROC-AUC: **0.891** | F1: **0.801**\n\n"
     "**Dataset:** DataCo Global Supply Chain"

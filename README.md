@@ -17,9 +17,9 @@ The objective is not just binary classification, but reliable, calibrated probab
 ## 🚀 What I worked on
 
 - 🧹 **Data cleaning and leakage check:** I removed information that would only be known after delivery, such as Days for shipping (real), Delivery Status, and actual shipping dates. This was important because keeping these variables can produce unrealistically high model performance.
-- ⚙️ **Production Feature Engineering:** ECreated features related to delivery urgency, order timing, financial ratios and other leak-free aggregates. One example is an urgency flag for shipments with scheduled transit time of 2 days or less.
-- 📊 **Statistical Testing & SQL :** Used Chi-Square and T-Test analysis to investigate possible delay drivers and wrote 24 SQL queries covering routing lanes, customer cohorts and other operational patterns.
-- 🤖 **6 ML Models Comparision:** Compared six classification approaches — Dummy Classifier, Logistic Regression, Decision Tree, Random Forest, Extra Trees and HistGradientBoosting — using the same train/test setup.
+- ⚙️ **Production Feature Engineering:** Created features related to delivery urgency, order timing, financial ratios and other leak-free aggregates. One example is an urgency flag for shipments with scheduled transit time of 2 days or less.
+- 📊 **Statistical Testing & SQL:** Used Chi-Square and T-Test analysis to investigate possible delay drivers and wrote 24 SQL queries covering routing lanes, customer cohorts and other operational patterns.
+- 🤖 **6 ML Models Comparison:** Compared six classification approaches — Dummy Classifier, Logistic Regression, Decision Tree, Random Forest, Extra Trees and HistGradientBoosting — using the same train/test setup.
 - 🌲 **Risk scoring:** Extra Trees selected for best-in-class probability ranking (**0.891 ROC-AUC**, **0.916 PR-AUC**) and segmented into actionable Low, Medium, and High risk tiers.
 - 🔍 **SHAP & Feature Explainability:** Used SHAP and feature importance analysis to understand which variables were contributing most to the predictions.
 - 🎯 **Deep Error Analysis:** Uncovered that Standard Class shipping accounts for **>95% of all false negatives** due to unobserved variance in 4–6 day delivery windows.
@@ -66,7 +66,7 @@ All models were evaluated on the exact same 36,104 test holdout using a standard
 | Decision Tree          |     0.794 |     0.810 | **0.816** | **0.813** |     0.792 |     0.762 |
 | Random Forest          |     0.753 |     0.857 |     0.660 |     0.745 |     0.846 |     0.885 |
 | **Extra Trees**        | **0.796** |     0.859 |     0.751 |     0.801 | **0.891** | **0.916** |
-| Hist Gradient Boosting |     0.739 | **0.892** |     0.597 |     0.715 |     0.834 |     0.880 |
+| Hist Gradient Boosting |     0.740 | **0.893** |     0.597 |     0.716 |     0.836 |     0.881 |
 
 ### 🏆 Why Extra Trees Was Selected
 While a single Decision Tree scored a slightly higher raw F1 (0.813 vs 0.801), individual tree leaves output polarized 0/1 probabilities. In production, operations teams cannot act on every single order; they need to rank orders from riskiest to safest.
@@ -92,9 +92,9 @@ Continuous model probabilities on the 36,104 test samples were bucketed into ope
 
 | Risk Tier | Probability Range | Test Orders (n) | Actual Late Rate | Recommended Operational Action |
 | :--- | :---: | :---: | :---: | :--- |
-| **Low Risk** | p < 0.30 | 11,520 (31.9%) | **5.7%** | Standard automated fulfillment |
-| **Medium Risk** | 0.30 <= p < 0.60 | 10,063 (27.9%) | **57.8%** | Watchlist; prioritize if warehouse load spikes |
-| **High Risk** | p >= 0.60 | 14,521 (40.2%) | **91.8%** | Immediate priority picking & carrier upgrade |
+| **Low Risk** | p < 0.30 | 7,747 (21.5%) | **9.3%** | Standard automated fulfillment |
+| **Medium Risk** | 0.30 <= p < 0.70 | 15,770 (43.7%) | **45.7%** | Watchlist; prioritize if warehouse load spikes |
+| **High Risk** | p >= 0.70 | 12,587 (34.9%) | **94.3%** | Immediate priority picking & carrier upgrade |
 
 *Threshold Tuning:* The separation between these groups was useful because the model's probability was much more informative than simply saying an order was "late" or "not late."
 
@@ -123,7 +123,7 @@ Feature attribution from Gini importance and Tree SHAP in `notebooks/08_explaina
 
 ![Feature Importance](images/Feature_Importance.png)
 
-- **The three most important predictive features were::** `num__Urgent_Shipment` (scheduled transit <= 2 days), `num__Days for shipment (scheduled)`, and `num__Order_Hour`.
+- **The three most important predictive features were:** `num__Urgent_Shipment` (scheduled transit <= 2 days), `num__Days for shipment (scheduled)`, and `num__Order_Hour`.
 - **Directional Impact:** Standard Class consistently pushes late delivery probability upward, whereas longer scheduled transit windows provide buffer time that lowers risk.
 - **Order Financials:** Higher sales value and discount percentage have secondary influence, reflecting batch complexity during high-volume promotions.
 
@@ -171,10 +171,10 @@ streamlit run app/app.py
 │   └── 10_ab_test_simulation.ipynb
 ├── sql/                           # 24 analytical SQL queries across 3 domains
 ├── src/                           # Modular Python package
-│   ├── data_loader.py
-│   ├── preprocessing.py
-│   ├── features.py
-│   └── model.py
+│   ├── preprocessing.py           # Data cleaning & leakage prevention
+│   ├── features.py                # Financial, shipping & aggregate features
+│   ├── evaluation.py              # Metrics evaluation & risk categorization
+│   └── __init__.py
 ├── requirements.txt               # Project dependencies
 └── README.md
 ```

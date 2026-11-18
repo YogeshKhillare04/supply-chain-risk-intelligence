@@ -4,7 +4,7 @@ This folder contains SQL queries that analyze the DataCo Supply Chain dataset fr
 
 ## Purpose
 
-While the main ML pipeline is implemented in Python (notebooks), these SQL queries demonstrate analytical skills that are essential for a Data Scientist role — especially at data-driven companies where SQL is used daily for ad-hoc analysis, reporting, and data exploration.
+These SQL queries provide business intelligence and operational reporting on the DataCo Supply Chain dataset, covering fulfillment bottlenecks, delivery delay patterns, customer segment risk, and revenue metrics.
 
 ## Files
 
